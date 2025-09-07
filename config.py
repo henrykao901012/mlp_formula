@@ -1,24 +1,38 @@
 import torch
+import torch.nn as nn
+import torch.optim as optim
 
 
 class Config:
-    # 模型參數
-    input_dim = 3  # 會根據公式自動調整
-    hidden_dims = [64, 32, 16]  # 增加網路深度處理複雜公式
+    # 擬合公式
+    # 可選公式: "NewtonSecondLaw", "KineticEnergy", "GravitationalForce",
+    #          "IdealGasLaw", "Pendulum", "CoulombsLaw", "HookesLaw"
+    formula = "IdealGasLaw"
+
+    # 模型參數（現在統一為單輸入單輸出）
+    input_dim = 1
+    hidden_dims = [32, 16, 8]  # 簡化網路結構
     output_dim = 1
 
     # 訓練參數
-    epochs = 100
+    epochs = 200
     batch_size = 32
-    learning_rate = 0.001
+
+    # 優化器設定
+    optimizer_class = optim.Adam
+    optimizer_params = {"lr": 0.001, "weight_decay": 0}
+
+    # Loss函數設定
+    criterion_class = nn.MSELoss
+    criterion_params = {}
 
     # 資料參數
     train_samples = 1000
     test_samples = 200
-    data_range = (0.1, 10.0)  # m和a的範圍
+    data_range = (0.1, 10.0)
 
     # 可視化參數
-    vis_interval = 0.05  # 可視化間隔比例
+    vis_interval = 0.1  # 每10%的epoch畫一次圖
     save_plots = True
     plot_dir = "plots"
 

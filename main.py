@@ -9,9 +9,22 @@ from formula import (
     IdealGasLaw,
     Pendulum,
     CoulombsLaw,
+    HookesLaw,
 )
 from trainer import Trainer
 from visualizer import Visualizer
+
+
+# 映射表：字串 → 公式建構函數
+formula_map = {
+    "NewtonSecondLaw": lambda: NewtonSecondLaw(m=2.0),
+    "KineticEnergy": lambda: KineticEnergy(m=1.0),
+    "GravitationalForce": lambda: GravitationalForce(m1=5.0, m2=10.0),
+    "IdealGasLaw": lambda: IdealGasLaw(n=1.0, T=300.0),
+    "Pendulum": lambda: Pendulum(),
+    "CoulombsLaw": lambda: CoulombsLaw(q1=2.0, q2=3.0),
+    "HookesLaw": lambda: HookesLaw(k=10.0),
+}
 
 
 def set_seed(seed):
@@ -24,23 +37,19 @@ def main():
     config = Config()
     set_seed(config.seed)
 
-    # 選擇要學習的公式
-    # formula = NewtonSecondLaw()  # F=ma (2輸入)
-    # formula = KineticEnergy()  # KE=0.5*m*v^2 (2輸入)
-    formula = GravitationalForce()  # F=m1*m2/r^2 (3輸入)
-    # formula = IdealGasLaw()  # P=nT/V (3輸入)
-    # formula = Pendulum()  # T=2π*sqrt(L/g) (1輸入)
-    # formula = CoulombsLaw()  # F=q1*q2/r^2 (3輸入)
+    # 從 Config 直接選擇
+    try:
+        formula = formula_map[Config.formula]()
+    except KeyError:
+        raise ValueError(f"Unknown formula: {Config.formula}")
 
-    print(f"學習公式: {formula.name}")
+    print(f"學習公式: {formula.get_description()}")
+    print(f"輸入變數: {formula.variable_name}")
+    print(f"輸出變數: {formula.output_name}")
 
-    # 根據公式自動調整輸入維度
-    if isinstance(formula, (NewtonSecondLaw, KineticEnergy)):
-        config.input_dim = 2
-    elif isinstance(formula, (GravitationalForce, IdealGasLaw, CoulombsLaw)):
-        config.input_dim = 3
-    elif isinstance(formula, Pendulum):
-        config.input_dim = 1
+    # 所有公式現在都是單輸入單輸出
+    config.input_dim = 1
+    config.output_dim = 1
 
     # 生成資料
     train_data = formula.generate_data(config.train_samples, config.data_range)
@@ -58,31 +67,23 @@ def main():
 
     # 訓練
     trainer = Trainer(model, config)
-    trained_model = trainer.train(train_data, test_data, visualizer)
+    trained_model = trainer.train(train_data, test_data, formula, visualizer)
 
     # 測試預測
     print("\n測試預測:")
-    if isinstance(formula, NewtonSecondLaw):
-        test_cases = [(1.0, 2.0), (5.0, 3.0), (2.5, 9.8)]
-        for m, a in test_cases:
-            inputs = torch.FloatTensor([[m, a]]).to(config.device)
-            prediction = model(inputs).item()
-            true_value = formula.compute(m, a)
-            error = abs(prediction - true_value)
-            print(
-                f"m={m}, a={a}: 預測F={prediction:.3f}, 真實F={true_value:.3f}, 誤差={error:.3f}"
-            )
+    test_values = [1.0, 2.5, 5.0, 7.5, 10.0]
 
-    elif isinstance(formula, GravitationalForce):
-        test_cases = [(1.0, 2.0, 1.0), (5.0, 3.0, 2.0), (10.0, 10.0, 5.0)]
-        for m1, m2, r in test_cases:
-            inputs = torch.FloatTensor([[m1, m2, r]]).to(config.device)
-            prediction = model(inputs).item()
-            true_value = formula.compute(m1, m2, r)
-            error = abs(prediction - true_value)
-            print(
-                f"m1={m1}, m2={m2}, r={r}: 預測F={prediction:.3f}, 真實F={true_value:.3f}, 誤差={error:.3f}"
-            )
+    for val in test_values:
+        input_tensor = torch.FloatTensor([[val]]).to(config.device)
+        prediction = model(input_tensor).item()
+        true_value = formula.compute(val)
+        error = abs(prediction - true_value)
+        print(
+            f"{formula.variable_name}={val:.2f}: "
+            f"預測{formula.output_name}={prediction:.3f}, "
+            f"真實{formula.output_name}={true_value:.3f}, "
+            f"誤差={error:.3f}"
+        )
 
 
 if __name__ == "__main__":

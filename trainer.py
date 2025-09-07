@@ -1,6 +1,4 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -11,10 +9,15 @@ class Trainer:
         self.device = config.device
         self.model.to(self.device)
 
-        self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+        # 從config讀取loss函數
+        self.criterion = config.criterion_class(**config.criterion_params)
 
-    def train(self, train_data, test_data, visualizer):
+        # 從config讀取優化器
+        self.optimizer = config.optimizer_class(
+            model.parameters(), **config.optimizer_params
+        )
+
+    def train(self, train_data, test_data, formula, visualizer):
         train_inputs, train_targets = train_data
         test_inputs, test_targets = test_data
 
@@ -31,8 +34,7 @@ class Trainer:
         )
 
         # 計算可視化間隔
-        vis_epochs = int(self.config.epochs * self.config.vis_interval)
-        vis_counter = 0
+        vis_interval_epochs = max(1, int(self.config.epochs * self.config.vis_interval))
 
         for epoch in range(1, self.config.epochs + 1):
             # 訓練
@@ -50,7 +52,11 @@ class Trainer:
             avg_loss = epoch_loss / len(train_loader)
 
             # 可視化檢查
-            if epoch % vis_epochs == 0 or epoch == 1 or epoch == self.config.epochs:
+            if (
+                epoch % vis_interval_epochs == 0
+                or epoch == 1
+                or epoch == self.config.epochs
+            ):
                 self.model.eval()
                 with torch.no_grad():
                     test_predictions = self.model(test_inputs)
@@ -65,6 +71,8 @@ class Trainer:
                     loss=test_loss,
                     predictions=test_predictions,
                     targets=test_targets,
+                    inputs=test_inputs,  # 新增
+                    formula=formula,  # 新增
                     save=self.config.save_plots,
                 )
 
