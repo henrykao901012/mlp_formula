@@ -7,7 +7,8 @@ class Config:
     # 擬合公式
     # 可選公式: "NewtonSecondLaw", "KineticEnergy", "GravitationalForce",
     #          "IdealGasLaw", "Pendulum", "CoulombsLaw", "HookesLaw"
-    formula = "IdealGasLaw"
+
+    formula = "CoulombsLaw"
 
     # 模型參數（現在統一為單輸入單輸出）
     input_dim = 1
@@ -33,6 +34,7 @@ class Config:
 
     # 可視化參數
     vis_interval = 0.1  # 每10%的epoch畫一次圖
+    duration = 100  # fps ms
     save_plots = True
     plot_dir = "plots"
 

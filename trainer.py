@@ -77,6 +77,6 @@ class Trainer:
                 )
 
         # gif
-        visualizer.create_animation()
+        visualizer.create_animation(duration=self.config.duration)
 
         return self.model
